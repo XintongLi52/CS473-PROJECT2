@@ -50,6 +50,8 @@
 /* What is the correct alignment? */
 #define ALIGNMENT 16
 
+static void* HeapList;
+
 /* rounds up to the nearest multiple of ALIGNMENT */
 static size_t align(size_t x)
 {
@@ -77,6 +79,11 @@ static unsigned int GET(unsigned char * p)
 static unsigned int GET_SIZE(unsigned char * p)
 {
     return (GET(p) & ~0x7);
+}
+
+static unsigned int GET_ALLOC(unsigned char * p)
+{
+    return (GET(p) & 0x1);
 }
 
 /*pack a size and allocated bit into a word*/
@@ -108,6 +115,13 @@ static unsigned char * NEXT_BLKP(unsigned char *bp)
 
 }
 
+static unsigned char * PREV_BLKP(unsigned char *bp)
+{
+    bp = (char *)(bp) - GET_SIZE(((char *)(bp) - DSIZE));
+    return bp;
+
+}
+
 /*Given the number of words and extend the heap with a new free block*/
 static void *extend_heap(size_t words)
 2 {
@@ -127,6 +141,39 @@ static void *extend_heap(size_t words)
 16  return bp;
     //return coalesce(bp);
 18 }
+
+static void *coalesce(void *bp) 
+{
+    size_t prev_alloc = GET_ALLOC(FTRP(PREV_BLKP(bp)));
+    size_t next_alloc = GET_ALLOC(HDRP(NEXT_BLKP(bp)));
+    size_t size = GET_SIZE(HDRP(bp));
+
+    if (prev_alloc && next_alloc) {            /* Case 1 */
+	return bp;
+    }
+
+    else if (prev_alloc && !next_alloc) {      /* Case 2 */
+	size += GET_SIZE(HDRP(NEXT_BLKP(bp)));
+	PUT(HDRP(bp), PACK(size, 0));
+	PUT(FTRP(bp), PACK(size,0));
+    }
+
+    else if (!prev_alloc && next_alloc) {      /* Case 3 */
+	size += GET_SIZE(HDRP(PREV_BLKP(bp)));
+	PUT(FTRP(bp), PACK(size, 0));
+	PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
+	bp = PREV_BLKP(bp);
+    }
+
+    else {                                     /* Case 4 */
+	size += GET_SIZE(HDRP(PREV_BLKP(bp))) + 
+	    GET_SIZE(FTRP(NEXT_BLKP(bp)));
+	PUT(HDRP(PREV_BLKP(bp)), PACK(size, 0));
+	PUT(FTRP(NEXT_BLKP(bp)), PACK(size, 0));
+	bp = PREV_BLKP(bp);
+    }
+    return bp;
+}
 
 /*
  * Initialize: returns false on error, true on success.
@@ -173,6 +220,7 @@ void free(void* ptr)
 void* realloc(void* oldptr, size_t size)
 {
     /* IMPLEMENT THIS */
+    
     return NULL;
 }
 
