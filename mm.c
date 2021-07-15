@@ -77,7 +77,7 @@ static unsigned long PUT(void* p, unsigned long val) {
     (*(unsigned long *) p) = val;
     return (*(unsigned long *)(p));
 }
-static void SET_PTR(void* p1, void* p2) {*(unsigned long *)(p1) = (unsigned long *)(p2);}
+static void SET_PTR(void* p1, void* p2) {*(unsigned long *)(p1) = (unsigned long)(p2);}
 static unsigned long GET_SIZE(void* p) {return GET(p) & ~0x7;}
 static unsigned long GET_ALLOC(void* p) {return GET(p) & 0x1;}
 
@@ -94,6 +94,9 @@ static char * SUCC_PTR(char* bp) {return ((char *)(bp+WSIZE));}
 /*move the pointer to bp's pred block and succ block*/
 static char * PRED_BLKP(char* bp) {return (*(char **)(bp));}
 static char * SUCC_BLKP(char* bp) {return (*(char **)(bp + WSIZE));}
+
+void INSERT(void * bp, size_t size);
+void DELETE(void *bp);
 
 /* rounds up to the nearest multiple of ALIGNMENT */
 static size_t align(size_t x)
@@ -223,9 +226,11 @@ void DELETE(void *bp)
     {
         if(PRED_BLKP != NULL)
         {
+            //printf("1指针地址p=%p ",bp);
+            //printf("2指针地址p=%p ",SUCC_BLKP(bp));
             /*xxx->delete->xxx*/
-            SET_PTR(PRED_PTR(SUCC_BLKP(bp)), PRED_BLKP(bp));
-            SET_PTR(SUCC_PTR(PRED_BLKP(bp)), SUCC_BLKP(bp));
+           SET_PTR(SUCC_PTR(PRED_BLKP(bp)), SUCC_BLKP(bp));
+           SET_PTR(PRED_PTR(SUCC_BLKP(bp)), PRED_BLKP(bp));
         }
         else /*PRED_BLKP == NULL*/
         {
@@ -299,6 +304,7 @@ static void *place(void *bp, size_t asize) {
         PUT(HDRP(bp), PACK(csize, 1));
         PUT(FTRP(bp), PACK(csize, 1));
     }
+    return bp;
 }
 
 
