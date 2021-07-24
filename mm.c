@@ -357,3 +357,4 @@ potential previous or successive free block. It perform a first-fit search, whic
 search for the first unallocated block in the free list. The checkheap checks whether 
 the block address is aligned, block size is aligned, or any contiguous free blocks existed.
 In place function, the block will be splitted only if its remainder size is larger than 32. 
+*/
